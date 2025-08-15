@@ -1,52 +1,70 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <title>Entregas Registradas</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-      background-color: #f3f3f3;
-    }
-    header {
-      background-color: #222;
-      color: #fff;
-      padding: 1em;
-      text-align: center;
-    }
-    main {
-      padding: 2em;
-      text-align: center;
-    }
-    iframe {
-      width: 95%;
-      height: 80vh;
-      border: none;
-    }
-    footer {
-      background-color: #222;
-      color: #fff;
-      text-align: center;
-      padding: 1em;
-      font-size: 0.8em;
-    }
-  </style>
+  <meta charset="UTF-8">
+  <title>Registro de Entregas</title>
 </head>
 <body>
-  <header>
-    <h1>Registro de Entregas</h1>
-    <p>RB Group Solutions LLC</p>
-  </header>
+  <h2>Registro de Entregas de Volantes</h2>
+  
+  <label for="usuario">Nombre del repartidor:</label>
+  <input type="text" id="usuario" placeholder="Escribe tu nombre"><br><br>
+  
+  <button onclick="registrarEntrega()">Registrar entrega</button>
 
-  <main>
-    <h2>Historial de Entregas</h2>
-    <iframe src="https://docs.google.com/spreadsheets/d/e/2PACX-1vRYgGJQyMd0YXkR5myDCMrnv1oc_UTTNi7bftQpBWnT3sKr4yDK8MxTDGZvdNk1_JUoyTAO_Wh_jBP7/pubhtml?widget=true&headers=false"></iframe>
-  </main>
+  <p id="estado"></p>
 
-  <footer>
-    &copy; 2025 RB Group Solutions LLC
-  </footer>
+  <script>
+    async function registrarEntrega() {
+      const estado = document.getElementById("estado");
+      const usuario = document.getElementById("usuario").value.trim();
+
+      if (!usuario) {
+        estado.innerText = "Por favor, escribe tu nombre.";
+        return;
+      }
+
+      estado.innerText = "Obteniendo ubicación…";
+
+      if (!navigator.geolocation) {
+        estado.innerText = "Tu navegador no permite geolocalización.";
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(async function(position) {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+
+        const data = {
+          usuario: usuario,
+          latitud: lat,
+          longitud: lng,
+          direccion: "",        // Puedes añadir lógica futura para esto
+          imagenURL: ""         // También puedes agregar esta opción en el futuro
+        };
+
+        try {
+          const respuesta = await fetch("https://script.google.com/macros/s/AKfycbwNQrAkoqwDYRsxUR4ZbmNTjiX2QJ90PcEPH5L4Qd-JPy4p9p6ZxNcULijeqJSs9L3r/exec", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify(data)
+          });
+
+          if (respuesta.ok) {
+            estado.innerText = "✅ Entrega registrada con éxito";
+          } else {
+            estado.innerText = "❌ Error al registrar. Código: " + respuesta.status;
+          }
+        } catch (error) {
+          estado.innerText = "❌ Error al conectar con el servidor.";
+        }
+
+      }, function(error) {
+        estado.innerText = "No se pudo obtener la ubicación. Activa el GPS.";
+      });
+    }
+  </script>
 </body>
 </html>
