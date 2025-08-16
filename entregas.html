@@ -1,13 +1,28 @@
 <!DOCTYPE html>
-<html lang="es">
+<html>
 <head>
   <meta charset="UTF-8">
   <title>Registro de Entregas</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    input, button {
+      padding: 10px;
+      margin-top: 10px;
+      font-size: 16px;
+    }
+    #estado {
+      margin-top: 20px;
+      font-weight: bold;
+    }
+  </style>
 </head>
 <body>
   <h2>Registro de Entregas de Volantes</h2>
   
-  <label for="usuario">Nombre del repartidor:</label>
+  <label for="usuario">Nombre del repartidor:</label><br>
   <input type="text" id="usuario" placeholder="Escribe tu nombre"><br><br>
   
   <button onclick="registrarEntrega()">Registrar entrega</button>
@@ -17,7 +32,7 @@
   <script>
     async function registrarEntrega() {
       const estado = document.getElementById("estado");
-      const usuario = document.getElementById("usuario").value.trim();
+      const usuario = document.getElementById("usuario").value;
 
       if (!usuario) {
         estado.innerText = "Por favor, escribe tu nombre.";
@@ -26,44 +41,54 @@
 
       estado.innerText = "Obteniendo ubicación…";
 
-      if (!navigator.geolocation) {
-        estado.innerText = "Tu navegador no permite geolocalización.";
-        return;
-      }
+      navigator.geolocation.getCurrentPosition(
+        async function(position) {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
 
-      navigator.geolocation.getCurrentPosition(async function(position) {
-        const lat = position.coords.latitude;
-        const lng = position.coords.longitude;
+          const data = {
+            usuario: usuario,
+            latitud: lat,
+            longitud: lng,
+            direccion: "",
+            imagenURL: ""
+          };
 
-        const data = {
-          usuario: usuario,
-          latitud: lat,
-          longitud: lng,
-          direccion: "",        // Puedes añadir lógica futura para esto
-          imagenURL: ""         // También puedes agregar esta opción en el futuro
-        };
+          try {
+            const respuesta = await fetch("https://script.google.com/macros/s/AKfycbwNQrAkoqwDYRsxUR4ZbmNTjiX2QJ90PcEPH5L4Qd-JPy4p9p6ZxNcULijeqJSs9L3r/exec", {
+              method: "POST",
+              body: JSON.stringify(data),
+              headers: {
+                "Content-Type": "application/json"
+              }
+            });
 
-        try {
-          const respuesta = await fetch("https://script.google.com/macros/s/AKfycbwNQrAkoqwDYRsxUR4ZbmNTjiX2QJ90PcEPH5L4Qd-JPy4p9p6ZxNcULijeqJSs9L3r/exec", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify(data)
-          });
-
-          if (respuesta.ok) {
-            estado.innerText = "✅ Entrega registrada con éxito";
-          } else {
-            estado.innerText = "❌ Error al registrar. Código: " + respuesta.status;
+            if (respuesta.ok) {
+              estado.innerText = "Entrega registrada con éxito ✔️";
+            } else {
+              estado.innerText = "Error al registrar. Código: " + respuesta.status;
+            }
+          } catch (error) {
+            estado.innerText = "Error al conectar con el servidor: " + error.message;
           }
-        } catch (error) {
-          estado.innerText = "❌ Error al conectar con el servidor.";
+        },
+        function(error) {
+          switch(error.code) {
+            case error.PERMISSION_DENIED:
+              estado.innerText = "Permiso denegado para obtener ubicación. Activa los permisos de GPS.";
+              break;
+            case error.POSITION_UNAVAILABLE:
+              estado.innerText = "Ubicación no disponible. El GPS no está activo o no tiene señal.";
+              break;
+            case error.TIMEOUT:
+              estado.innerText = "Tiempo agotado al obtener ubicación. Intenta nuevamente.";
+              break;
+            case error.UNKNOWN_ERROR:
+              estado.innerText = "Error desconocido al obtener ubicación.";
+              break;
+          }
         }
-
-      }, function(error) {
-        estado.innerText = "No se pudo obtener la ubicación. Activa el GPS.";
-      });
+      );
     }
   </script>
 </body>
