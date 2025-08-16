@@ -41,6 +41,10 @@
 
   <button onclick="registrarEntrega()">Registrar entrega</button>
 
+  <!-- 🔍 Botón adicional para probar ubicación -->
+  <button onclick="probarGPS()">📍 Probar GPS</button>
+  <p id="gpsDebug"></p>
+
   <p class="mensaje" id="mensaje"></p>
 
   <script>
@@ -55,7 +59,7 @@
         const img = new Image();
         img.onload = function () {
           const canvas = document.createElement("canvas");
-          const maxWidth = 800; // redimensionar a máx. 800px ancho
+          const maxWidth = 800;
           const scaleSize = maxWidth / img.width;
           canvas.width = maxWidth;
           canvas.height = img.height * scaleSize;
@@ -63,7 +67,7 @@
           const ctx = canvas.getContext("2d");
           ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-          imagenBase64 = canvas.toDataURL("image/jpeg", 0.7); // calidad 70%
+          imagenBase64 = canvas.toDataURL("image/jpeg", 0.7);
           document.getElementById("preview").src = imagenBase64;
           document.getElementById("preview").style.display = "block";
         };
@@ -104,21 +108,42 @@
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ contents: datos })
           })
-            .then(response => response.text())
-            .then(res => {
-              mensaje.textContent = res;
-              document.getElementById('usuario').value = '';
-              document.getElementById('direccion').value = '';
-              document.getElementById('foto').value = '';
-              document.getElementById('preview').style.display = 'none';
-            })
-            .catch(err => {
-              console.error(err);
-              mensaje.textContent = 'Error al enviar los datos.';
-            });
+          .then(response => response.text())
+          .then(res => {
+            mensaje.textContent = res;
+            document.getElementById('usuario').value = '';
+            document.getElementById('direccion').value = '';
+            document.getElementById('foto').value = '';
+            document.getElementById('preview').style.display = 'none';
+          })
+          .catch(err => {
+            console.error(err);
+            mensaje.textContent = 'Error al enviar los datos.';
+          });
         },
         (error) => {
           mensaje.textContent = 'Error al obtener ubicación: ' + error.message;
+        }
+      );
+    }
+
+    // 🧪 Botón para testear ubicación sin registrar
+    function probarGPS() {
+      const debug = document.getElementById("gpsDebug");
+
+      if (!navigator.geolocation) {
+        debug.textContent = "GPS no soportado.";
+        return;
+      }
+
+      debug.textContent = "Obteniendo ubicación...";
+
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          debug.textContent = `Latitud: ${pos.coords.latitude.toFixed(6)}, Longitud: ${pos.coords.longitude.toFixed(6)}`;
+        },
+        (err) => {
+          debug.textContent = `Error: ${err.message}`;
         }
       );
     }
