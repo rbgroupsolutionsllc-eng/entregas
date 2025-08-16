@@ -1,92 +1,124 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Registro de Entregas</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      margin: 20px;
+      padding: 20px;
     }
     input, button {
       padding: 10px;
-      margin-top: 10px;
-      font-size: 16px;
+      margin: 10px 0;
+      width: 100%;
     }
-    #estado {
+    .mensaje {
       margin-top: 20px;
       font-weight: bold;
+    }
+    img {
+      max-width: 100%;
+      margin-top: 10px;
+      display: none;
     }
   </style>
 </head>
 <body>
-  <h2>Registro de Entregas de Volantes</h2>
-  
-  <label for="usuario">Nombre del repartidor:</label><br>
-  <input type="text" id="usuario" placeholder="Escribe tu nombre"><br><br>
-  
+  <h2>Registro de Entregas</h2>
+
+  <label for="usuario">Nombre del repartidor:</label>
+  <input type="text" id="usuario" placeholder="Ingresa tu nombre" required />
+
+  <label for="direccion">Dirección:</label>
+  <input type="text" id="direccion" placeholder="Ingresa dirección manualmente o usa GPS" />
+
+  <label for="foto">Foto de entrega:</label>
+  <input type="file" id="foto" accept="image/*" capture="environment" />
+
+  <img id="preview" alt="Vista previa"/>
+
   <button onclick="registrarEntrega()">Registrar entrega</button>
 
-  <p id="estado"></p>
+  <p class="mensaje" id="mensaje"></p>
 
   <script>
-    async function registrarEntrega() {
-      const estado = document.getElementById("estado");
-      const usuario = document.getElementById("usuario").value;
+    let imagenBase64 = "";
+
+    document.getElementById("foto").addEventListener("change", function (event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const img = new Image();
+        img.onload = function () {
+          const canvas = document.createElement("canvas");
+          const maxWidth = 800; // redimensionar a máx. 800px ancho
+          const scaleSize = maxWidth / img.width;
+          canvas.width = maxWidth;
+          canvas.height = img.height * scaleSize;
+
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+          imagenBase64 = canvas.toDataURL("image/jpeg", 0.7); // calidad 70%
+          document.getElementById("preview").src = imagenBase64;
+          document.getElementById("preview").style.display = "block";
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    function registrarEntrega() {
+      const usuario = document.getElementById('usuario').value;
+      const direccion = document.getElementById('direccion').value;
+      const mensaje = document.getElementById('mensaje');
 
       if (!usuario) {
-        estado.innerText = "Por favor, escribe tu nombre.";
+        mensaje.textContent = 'Por favor, ingresa tu nombre.';
         return;
       }
 
-      estado.innerText = "Obteniendo ubicación…";
+      mensaje.textContent = 'Obteniendo ubicación...';
+
+      if (!navigator.geolocation) {
+        mensaje.textContent = 'Geolocalización no soportada por tu navegador.';
+        return;
+      }
 
       navigator.geolocation.getCurrentPosition(
-        async function(position) {
-          const lat = position.coords.latitude;
-          const lng = position.coords.longitude;
-
-          const data = {
+        (position) => {
+          const datos = {
             usuario: usuario,
-            latitud: lat,
-            longitud: lng,
-            direccion: "",
-            imagenURL: ""
+            direccion: direccion,
+            latitud: position.coords.latitude,
+            longitud: position.coords.longitude,
+            imagenURL: imagenBase64
           };
 
-          try {
-            const respuesta = await fetch("https://script.google.com/macros/s/AKfycbwNQrAkoqwDYRsxUR4ZbmNTjiX2QJ90PcEPH5L4Qd-JPy4p9p6ZxNcULijeqJSs9L3r/exec", {
-              method: "POST",
-              body: JSON.stringify(data),
-              headers: {
-                "Content-Type": "application/json"
-              }
+          fetch("https://script.google.com/macros/s/AKfycbx07vPQ9DTyaKfuXsQal43rSnaxCvRf1MxWgK6HwCKbL38w9llCNtwO00DSrvhruZym/exec", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ contents: datos })
+          })
+            .then(response => response.text())
+            .then(res => {
+              mensaje.textContent = res;
+              document.getElementById('usuario').value = '';
+              document.getElementById('direccion').value = '';
+              document.getElementById('foto').value = '';
+              document.getElementById('preview').style.display = 'none';
+            })
+            .catch(err => {
+              console.error(err);
+              mensaje.textContent = 'Error al enviar los datos.';
             });
-
-            if (respuesta.ok) {
-              estado.innerText = "Entrega registrada con éxito ✔️";
-            } else {
-              estado.innerText = "Error al registrar. Código: " + respuesta.status;
-            }
-          } catch (error) {
-            estado.innerText = "Error al conectar con el servidor: " + error.message;
-          }
         },
-        function(error) {
-          switch(error.code) {
-            case error.PERMISSION_DENIED:
-              estado.innerText = "Permiso denegado para obtener ubicación. Activa los permisos de GPS.";
-              break;
-            case error.POSITION_UNAVAILABLE:
-              estado.innerText = "Ubicación no disponible. El GPS no está activo o no tiene señal.";
-              break;
-            case error.TIMEOUT:
-              estado.innerText = "Tiempo agotado al obtener ubicación. Intenta nuevamente.";
-              break;
-            case error.UNKNOWN_ERROR:
-              estado.innerText = "Error desconocido al obtener ubicación.";
-              break;
-          }
+        (error) => {
+          mensaje.textContent = 'Error al obtener ubicación: ' + error.message;
         }
       );
     }
