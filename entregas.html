@@ -147,6 +147,37 @@
         }
       );
     }
-  </script>
+  <script>
+document.getElementById('btnGPS').addEventListener('click', function () {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      function (position) {
+        const lat = position.coords.latitude.toFixed(6);
+        const lon = position.coords.longitude.toFixed(6);
+        document.getElementById('direccion').value = `Lat: ${lat}, Lon: ${lon}`;
+        document.getElementById('gps-status').innerText = `Latitud: ${lat}, Longitud: ${lon}`;
+      },
+      function (error) {
+        let msg = 'Error al obtener ubicación';
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            msg = 'Permiso denegado por el usuario.';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            msg = 'Ubicación no disponible.';
+            break;
+          case error.TIMEOUT:
+            msg = 'Tiempo de espera excedido.';
+            break;
+        }
+        alert(msg);
+        document.getElementById('gps-status').innerText = msg;
+      }
+    );
+  } else {
+    alert('GPS no soportado por este navegador.');
+  }
+});
+</script>
 </body>
 </html>
