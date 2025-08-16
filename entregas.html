@@ -34,14 +34,16 @@
   <label for="direccion">Dirección:</label>
   <input type="text" id="direccion" placeholder="Ingresa dirección manualmente o usa GPS" />
 
+  <button id="btnGPS">🧭 Autollenar Dirección con GPS</button>
+  <p id="gps-status"></p>
+
   <label for="foto">Foto de entrega:</label>
   <input type="file" id="foto" accept="image/*" capture="environment" />
 
   <img id="preview" alt="Vista previa"/>
 
-  <button onclick="registrarEntrega()">Registrar entrega</button>
+  <button onclick="registrarEntrega()">📦 Registrar entrega</button>
 
-  <!-- 🔍 Botón adicional para probar ubicación -->
   <button onclick="probarGPS()">📍 Probar GPS</button>
   <p id="gpsDebug"></p>
 
@@ -50,6 +52,7 @@
   <script>
     let imagenBase64 = "";
 
+    // Procesamiento de imagen base64 para subir
     document.getElementById("foto").addEventListener("change", function (event) {
       const file = event.target.files[0];
       if (!file) return;
@@ -76,6 +79,7 @@
       reader.readAsDataURL(file);
     });
 
+    // Registro principal de entrega
     function registrarEntrega() {
       const usuario = document.getElementById('usuario').value;
       const direccion = document.getElementById('direccion').value;
@@ -127,7 +131,36 @@
       );
     }
 
-    // 🧪 Botón para testear ubicación sin registrar
+    // Autocompletar campo "dirección" con coordenadas GPS
+    document.getElementById('btnGPS').addEventListener('click', function () {
+      const gpsStatus = document.getElementById('gps-status');
+
+      if (navigator.geolocation) {
+        gpsStatus.innerText = 'Buscando ubicación...';
+        navigator.geolocation.getCurrentPosition(
+          function (position) {
+            const lat = position.coords.latitude.toFixed(6);
+            const lon = position.coords.longitude.toFixed(6);
+            document.getElementById('direccion').value = `Lat: ${lat}, Lon: ${lon}`;
+            gpsStatus.innerText = `Latitud: ${lat}, Longitud: ${lon}`;
+          },
+          function (error) {
+            let msg = 'Error al obtener ubicación';
+            switch (error.code) {
+              case error.PERMISSION_DENIED: msg = 'Permiso denegado por el usuario.'; break;
+              case error.POSITION_UNAVAILABLE: msg = 'Ubicación no disponible.'; break;
+              case error.TIMEOUT: msg = 'Tiempo de espera excedido.'; break;
+            }
+            gpsStatus.innerText = msg;
+            alert(msg);
+          }
+        );
+      } else {
+        alert('GPS no soportado por este navegador.');
+      }
+    });
+
+    // Prueba GPS simple
     function probarGPS() {
       const debug = document.getElementById("gpsDebug");
 
@@ -147,37 +180,6 @@
         }
       );
     }
-  <script>
-document.getElementById('btnGPS').addEventListener('click', function () {
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(
-      function (position) {
-        const lat = position.coords.latitude.toFixed(6);
-        const lon = position.coords.longitude.toFixed(6);
-        document.getElementById('direccion').value = `Lat: ${lat}, Lon: ${lon}`;
-        document.getElementById('gps-status').innerText = `Latitud: ${lat}, Longitud: ${lon}`;
-      },
-      function (error) {
-        let msg = 'Error al obtener ubicación';
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            msg = 'Permiso denegado por el usuario.';
-            break;
-          case error.POSITION_UNAVAILABLE:
-            msg = 'Ubicación no disponible.';
-            break;
-          case error.TIMEOUT:
-            msg = 'Tiempo de espera excedido.';
-            break;
-        }
-        alert(msg);
-        document.getElementById('gps-status').innerText = msg;
-      }
-    );
-  } else {
-    alert('GPS no soportado por este navegador.');
-  }
-});
-</script>
+  </script>
 </body>
 </html>
