@@ -1,2 +1,2 @@
 # entregas
-Sitio de entregas Beacon
+Sitio de entregas
